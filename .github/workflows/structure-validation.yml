@@ -1,0 +1,44 @@
+name: Validate Repository Structure
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-structure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Validate Repository Structure
+        run: |
+          # Ensure the main README.md exists
+          if [ ! -f "README.md" ]; then
+            echo "Root README.md is missing. Please add a README.md with discipline name and code."
+            exit 1
+          fi
+
+          # Ensure each task folder has a README.md and no unauthorized files
+          for dir in */ ; do
+            if [ ! -f "${dir}/README.md" ]; then
+              echo "Task ${dir} is missing a README.md. Each task folder must have a README.md file with the task description."
+              exit 1
+            fi
+
+            # Check that every file in the task folder follows the author naming convention
+            for file in "${dir}"*; do
+              filename=$(basename "$file")
+              if [[ "$filename" != *"."* ]]; then
+                echo "File ${filename} in ${dir} does not follow the naming convention. It should be named as 'author.extension'."
+                exit 1
+              fi
+            done
+          done
+
+          echo "Repository structure is valid."

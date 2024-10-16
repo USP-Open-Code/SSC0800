@@ -1,0 +1,40 @@
+# Ensuring that every time a new directory is added to the repository, 
+# the README.md file in the root is updated with a reference to its content.
+
+name: Validate README.md Update
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        run: git fetch --all
+
+      - name: Identify new directories
+        id: new_dirs
+        run: |
+          new_dirs=$(git diff --name-status origin/main | awk '$1 == "A" && $2 ~ /\/$/ {print $2}')
+          echo "New directories added: $new_dirs"
+          echo "::set-output name=new_dirs::$new_dirs"
+
+      - name: Check if README.md was modified
+        if: steps.new_dirs.outputs.new_dirs != ''
+        run: |
+          readme_changed=$(git diff --name-only origin/main | grep -c "README.md" || true)
+          if [ $readme_changed -eq 0 ]; then
+            echo "README.md was not updated. Please update it to reflect new directories."
+            exit 1
+          else
+            echo "README.md was updated."
+          fi
